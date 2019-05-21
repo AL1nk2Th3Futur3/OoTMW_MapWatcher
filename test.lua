@@ -4,7 +4,7 @@ local http = require("socket.http")
 local username, password, roomname
 local loggedIn = false
 local id = nil
-local ip = "10.144.110.73"
+local ip = "127.0.0.1"
 local port = "5000"
 
 -- Room submission function

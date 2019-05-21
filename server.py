@@ -3,6 +3,7 @@ from flask_socketio import SocketIO, send, emit, join_room, leave_room
 import random, hashlib, time, json
 
 app = Flask(__name__, static_url_path="")
+# Remember to change this... Or remove it entirely actually
 app.config['SECRET_KEY'] = "A4A4BB55B152833E72E5F3B85CAA30F61E99D4260063F723E7993323A6AC95B6"
 app.secret_key = "A4A4BB55B152833E72E5F3B85CAA30F61E99D4260063F723E7993323A6AC95B6"
 app.config['TEMPLATES_AUTO_RELOAD'] = True
