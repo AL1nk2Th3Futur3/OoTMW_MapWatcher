@@ -1,0 +1,38 @@
+body{
+  background-color: rgb(0, 61, 10);
+}
+
+.container{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.overworld{
+  border: 5px solid black;
+  position: relative;
+}
+
+.dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 999;
+  width: 10px;
+  height: 10px;
+  background-color: black;
+  border-radius: 90px;
+  animation: colourDot 2s ease-in-out infinite alternate;
+  transform-origin: center center;
+}
+
+@keyframes colourDot{
+  from {
+    box-shadow: 0 0 5px rgb(158, 158, 158);
+    transform: scale(1);
+  }
+  to {
+    box-shadow: 0 0 15px rgb(255, 255, 255);
+    transform: scale(2);
+  }
+}
