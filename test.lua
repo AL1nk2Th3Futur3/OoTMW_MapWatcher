@@ -13,6 +13,12 @@ function submit_room (args)
   -- print(forms.gettext(password))
   -- print(forms.gettext(roomname))
   local currentLocation = mainmemory.read_u16_be(0x1C8544)
+  local inventory = {}
+  for i=0,23 do
+    inventory[i] = mainmemory.read_u16_be(0x11A644+i)
+  end
+
+
   data = http.request('http://'..ip..':'..port..'/login' ..
     "?username=" .. forms.gettext(username) ..
     "&password=" .. forms.gettext(password) ..
