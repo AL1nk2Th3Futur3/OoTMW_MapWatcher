@@ -23,6 +23,12 @@ else
 end
 file:close()
 
+-- Handle the closing of the application
+event.onexit(function ()
+	client:close()
+	forms.destroy(mainform)
+end)
+
 -- Add a line to the output. Inserts a timestamp to the string
 -- Taken directly from bizhawk co-op.lua
 function printOutput(str)
@@ -143,6 +149,10 @@ checkRoutine = coroutine.create(checkInfo)
 -- Main loop
 while true do
 	disconn = false
+	-- End script if mainform is closed
+	if forms.gettext(mainform) == "" then
+		return
+	end
   status, retInfo = coroutine.resume(checkRoutine)
 	if retInfo then
 		-- If the socket couldn't connect, print and message and end everything
@@ -157,6 +167,10 @@ while true do
 			client:send("username," .. USERNAME .. "," .. currentLocation .. "," .. COLOUR)
 		end
 	  while true do
+			-- End script if mainform is closed
+			if forms.gettext(mainform) == "" then
+				return
+			end
 	    -- Start the keepalive routine
 	    status, check = coroutine.resume(pingRoutine)
 	    if check then
