@@ -1,4 +1,4 @@
-import socket, threading, hashlib, time, os
+import socket, threading, hashlib, time, os, json
 from flask import Flask, request, render_template, Response
 import socketio
 
@@ -19,7 +19,7 @@ app.wsgi_app = socketio.Middleware(sio, app.wsgi_app)
 # Function for the keepalive thread
 def keepalive(conn, addr):
     with conn:
-        conn.settimeout(3)
+        conn.settimeout(6)
         # Create a unique player hash ID
         playerHash = hashlib.sha256(str(time.time).encode()).hexdigest() + hashlib.sha256(str(hash(conn)).encode()).hexdigest()
         playerHash = hashlib.sha256(playerHash.encode()).hexdigest()
@@ -34,7 +34,8 @@ def keepalive(conn, addr):
                 message = data.split(b',')
                 # If ping send pong, works to ensure the connection is still good
                 if message[0] == b'ping':
-                    conn.sendall(b'pong' + b'\n')
+                    # conn.sendall(b'pong' + b'\n')
+                    pass
                 # If the client says the player's location has changed, update the PLAYERS dict and send it to the webserver
                 if message[0] == b'location':
                     PLAYERS[playerHash]['Location'] = int(message[1])
@@ -43,11 +44,16 @@ def keepalive(conn, addr):
                         "id": playerHash,
                         "location": PLAYERS[playerHash]['Location']
                     })
+                # Used to handle getting new items
+                if message[0] == b'items':
+                    PLAYERS[playerHash]['Items'] = [int(i) for i in message[1:25]]
+                    sio.emit('sendPlayer', {'data':PLAYERS[playerHash], 'hash':playerHash})
                 # Used to set the initial data for the player on first connection, sends data to webserver
                 if message[0] == b'username':
                     PLAYERS[playerHash]['Username'] = message[1].decode()
                     PLAYERS[playerHash]['Location'] = message[2].decode()
                     PLAYERS[playerHash]['Colour'] = message[3].decode()
+                    PLAYERS[playerHash]['Items'] = [int(i) for i in message[4:28]]
                     print('User has connected:', PLAYERS[playerHash]['Username'])
                     sio.emit("socketConnected",
                     {
@@ -56,6 +62,7 @@ def keepalive(conn, addr):
                         "location": PLAYERS[playerHash]['Location'],
                         "colour": PLAYERS[playerHash]['Colour']
                     })
+
             # If there's an error of any type, break out of the loop and kill the thread
             except Exception as e:
                 print(e)
@@ -81,10 +88,29 @@ def listenForConnections():
 def index():
     return render_template("index.html")
 
+# Send player data
+@app.route('/getPlayer', methods = ['GET'])
+def get_player():
+    try:
+        playerid = request.args.get('playerid', type=str)
+        return Response(json.dumps(PLAYERS[playerid]), status=200, mimetype='application/json')
+    except Exception as e:
+        print(e)
+        return Response(None, status=404)
+
 # Send the entire player list to the webserver
 @sio.on('getMap')
 def my_event(data):
     sio.emit('sendMap', PLAYERS)
+
+# @sio.on('getPlayer')
+# def get_player(sid, data):
+#     print(sid)
+#     print(data)
+    # try:
+    #     sio.emit('sendPlayer', PLAYERS[data['playerHash']])
+    # except:
+    #     pass
 
 # Main function
 if __name__ == '__main__':

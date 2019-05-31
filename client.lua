@@ -50,17 +50,20 @@ function keepalive ()
   start = os.time()
   while true do
     now = os.time()
-    if os.difftime(now, start) >= 1 then
+		emu.frameadvance()
+    if os.difftime(now, start) >= 5 then
       pong = client:send("ping,")
+			emu.frameadvance()
       if not pong then
         printOutput("Disconnected from server")
         HOST, PORT, USERNAME, COLOUR = nil
 				client:close()
 				forms.setproperty(connect, 'Enabled', true)
 				forms.setproperty(disconnect, 'Enabled', false)
+				start = now
         coroutine.yield(true)
       else
-	      s, status, partial = client:receive("*l")
+	      -- s, status, partial = client:receive("*l")
 	      start = now
 			end
     end
@@ -77,9 +80,10 @@ local currentLocation = mainmemory.read_u16_be(0x1C8544)
 -- local y = mainmemory.read_u16_be(0x1DAA58)
 -- local z = mainmemory.read_u16_be(0x1DAA5C)
 
--- local inventory = mainmemory.readbyterange(0x11A644, 24)
--- print(inventory)
+local items = mainmemory.readbyterange(0x11A644, 24)
+-- print(items[21])
 
+-- Connect button
 function Connect (args)
   HOST = forms.gettext(host)
   HOST = HOST:gsub(",", "")
@@ -101,6 +105,7 @@ function Connect (args)
   forms.setproperty(disconnect, 'Enabled', true)
 end
 
+-- Disconnect button
 function Disconnect (args)
 	disconn = true
 	HOST, PORT, USERNAME, COLOUR = nil
@@ -136,6 +141,7 @@ function checkInfo ()
       -- Create the client and connect
       printOutput("Attempting to connect to server...")
       client, err = socket.connect(HOST, PORT)
+			client:setoption('linger', {['on']=false, ['timeout']=0})
       coroutine.yield(true)
     end
   end
@@ -164,7 +170,12 @@ while true do
 		else
 			printOutput("Connected to server!")
 			-- Send the identifying information to the server and start the main loop
-			client:send("username," .. USERNAME .. "," .. currentLocation .. "," .. COLOUR)
+			msg = "username," .. USERNAME .. "," .. currentLocation .. "," .. COLOUR
+			for i=0,23 do
+				msg = msg .. "," .. items[i]
+				emu.frameadvance()
+			end
+			client:send(msg)
 		end
 	  while true do
 			-- End script if mainform is closed
@@ -173,7 +184,8 @@ while true do
 			end
 	    -- Start the keepalive routine
 	    status, check = coroutine.resume(pingRoutine)
-	    if check then
+			-- print(status)
+	    if status then
 				-- Reconnection code WIP
 					-- client, err = socket.connect(HOST, PORT)
 					-- if err then
@@ -196,6 +208,15 @@ while true do
 	        client:send("location," .. currentLocation)
 	      end
 	    end
+			if table.concat(items) ~= table.concat(mainmemory.readbyterange(0x11A644, 24)) then
+				items = mainmemory.readbyterange(0x11A644, 24)
+				msg = 'items'
+				for i=0,23 do
+					msg = msg .. "," .. items[i]
+					emu.frameadvance()
+				end
+				client:send(msg)
+			end
 	    emu.frameadvance()
 	  end
 	end

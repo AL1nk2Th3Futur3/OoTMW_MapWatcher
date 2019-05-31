@@ -10,6 +10,14 @@
       <div class="overworld">
         <img src="/images/overworld.jpg" alt="">
       </div>
+      <div class="items">
+        <div class="items-name">
+          <span></span>
+        </div>
+        <div class="items-icons">
+
+        </div>
+      </div>
     </div>
   </body>
   <script type="text/javascript" src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
@@ -17,9 +25,11 @@
   <script src="/js/constants.js" charset="utf-8"></script>
   <script type="text/javascript" charset="utf-8">
       var socket = io.connect('http://' + document.domain + ':' + location.port);
+      var watchedPlayer = null;
 
       // Connect to the SocketIO server and ask for the players
       socket.on('connect', function() {
+          $(".playerBox").remove();
           socket.emit('getMap');
       });
 
@@ -82,10 +92,61 @@
         }
       });
 
+      socket.on('sendPlayer', function (player) {
+        console.log(player)
+        if (player['hash'] == watchedPlayer) {
+          $('.icon').remove();
+          for (var i = 0; i < player['data']['Items'].length; i++) {
+            if (player['data']['Items'][i] == 255) {
+              iconImg = $('<img>')
+              iconImg.attr('class', 'icon');
+              $('.items-icons').append(iconImg);
+              continue
+            }
+            iconImg = $('<img>')
+            iconImg.attr('src', "/images/icons/" + player['data']['Items'][i] + ".png");
+            iconImg.attr('class', 'icon');
+            $('.items-icons').append(iconImg);
+          }
+        }
+      })
+
       // Remove the dot when socket disconnects
       socket.on("socketDisconnected", function (data) {
         $("#" + data['id']).remove();
       });
+
+      // Get a player's items
+      $(".overworld").on("click", ".dot", function () {
+        watchedPlayer = $(this).parent(".playerBox").attr('id');
+        $.ajax({
+          url: '/getPlayer',
+          type: 'GET',
+          dataType: 'json',
+          data: {playerid: watchedPlayer}
+        })
+        .done(function(player) {
+          if ($('.items').css('display') == 'none') {
+            $('.items').css('display', 'block')
+          }
+          $(".items-name span").html(player['Username'])
+          for (var i = 0; i < player['Items'].length; i++) {
+            if (player['Items'][i] == 255) {
+              iconImg = $('<img>')
+              $('.items-icons').append(iconImg);
+              continue
+            }
+            iconImg = $('<img>')
+            iconImg.attr('src', "/images/icons/" + player['Items'][i] + ".png");
+            iconImg.attr('class', 'icon');
+            $('.items-icons').append(iconImg);
+          }
+        })
+        .fail(function() {
+          console.log("error");
+        })
+
+      })
 
   </script>
 </html>
