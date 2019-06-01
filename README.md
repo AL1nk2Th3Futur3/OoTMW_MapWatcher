@@ -5,9 +5,9 @@ A live map to see where Ocarina of Time Multiworld players are
 
 This application assumes you know how to port forward
 
-##How to use
+## How to use
 
-###Host
+### Host
 
 1. Download the repo
 
@@ -24,7 +24,7 @@ This application assumes you know how to port forward
 7. Port forward ports 80 and 50001 (or whatever port you decided on in step 6) to your machine
 
 
-###Client
+### Client
 
 1. Download the repo
 
@@ -41,6 +41,6 @@ This application assumes you know how to port forward
 7. Click the Connect button
 
 
-###Accessing Map
+### Accessing Map
 
 The map should be accessible at your host's IP address
