@@ -1,6 +1,6 @@
 local socket = require('socket')
 
-local HOST, PORT, USERNAME, COLOUR
+local HOST, PORT, USERNAME, COLOUR, PASSWORD
 local RECONATMP = 0
 
 file = io.open("info.txt", 'r+')
@@ -50,10 +50,12 @@ function keepalive ()
   start = os.time()
   while true do
     now = os.time()
-		emu.frameadvance()
+		emu.yield()
+		emu.yield()
     if os.difftime(now, start) >= 5 then
       pong = client:send("ping,")
-			emu.frameadvance()
+			emu.yield()
+	    emu.yield()
       if not pong then
         printOutput("Disconnected from server")
         HOST, PORT, USERNAME, COLOUR = nil
@@ -81,7 +83,7 @@ local currentLocation = mainmemory.read_u16_be(0x1C8544)
 -- local z = mainmemory.read_u16_be(0x1DAA5C)
 
 local items = mainmemory.readbyterange(0x11A644, 24)
--- print(items[21])
+local equipment = mainmemory.readbyterange(0x11A66B,3)
 
 -- Connect button
 function Connect (args)
@@ -98,8 +100,10 @@ function Connect (args)
   COLOUR = COLOUR:gsub(",", "")
   COLOUR = COLOUR:gsub(" ", "")
   COLOUR = COLOUR:gsub("ping", "")
+	PASSWORD = forms.gettext(password)
+	PASSWORD = PASSWORD:gsub(",", "")
 	file = io.open("info.txt", 'w')
-	file:write(USERNAME .. "," .. HOST .. "," .. PORT .. "," .. COLOUR)
+	file:write(USERNAME .. "," .. HOST .. "," .. PORT .. "," .. COLOUR .. ",")
 	file:close()
   forms.setproperty(connect, 'Enabled', false)
   forms.setproperty(disconnect, 'Enabled', true)
@@ -115,27 +119,30 @@ function Disconnect (args)
 end
 
 -- GUI
-mainform = forms.newform(370, 240, "Map Watcher")
+mainform = forms.newform(370, 265, "Map Watcher")
 username = forms.textbox(mainform, un, 90, 20, nil, 70, 20, false, false)
 host = forms.textbox(mainform, ip, 90, 20, nil, 70, 50, false, false)
 port = forms.textbox(mainform, pt, 90, 20, nil, 70, 80, false, false)
 colour = forms.textbox(mainform, cl, 90, 20, nil, 70, 110, false, false)
+password = forms.textbox(mainform, "", 90, 20, nil, 70, 140, false, false)
 lblUsername = forms.label(mainform, "Username:", 10, 22)
 lblHost = forms.label(mainform, "Host IP:", 22, 52)
 lblPort = forms.label(mainform, "Port:", 38, 82)
 lblColour = forms.label(mainform, "Colour:", 27, 112)
-output = forms.textbox(mainform, "", 170, 170, nil, 170, 20, true, true, 'Vertical')
+lblPassword = forms.label(mainform, "Password:", 10, 142)
+output = forms.textbox(mainform, "", 170, 195, nil, 170, 20, true, true, 'Vertical')
 forms.setproperty(output, "ReadOnly", true)
-connect = forms.button(mainform, "Connect", Connect, 10, 140, 151, 20)
-disconnect = forms.button(mainform, "Disconnect", Disconnect, 10, 170, 151, 20)
+forms.setproperty(password, 'PasswordChar', '*')
+connect = forms.button(mainform, "Connect", Connect, 10, 170, 151, 20)
+disconnect = forms.button(mainform, "Disconnect", Disconnect, 10, 195, 151, 20)
 forms.setproperty(disconnect, 'Enabled', false)
 
 -- Checks to see if connection information is provided
 function checkInfo ()
   while true do
-    -- print("Here")
     if not HOST and not PORT and not USERNAME and not COLOUR then
-      emu.frameadvance()
+      emu.yield()
+	    emu.yield()
 			coroutine.yield(false)
     else
       -- Create the client and connect
@@ -173,8 +180,10 @@ while true do
 			msg = "username," .. USERNAME .. "," .. currentLocation .. "," .. COLOUR
 			for i=0,23 do
 				msg = msg .. "," .. items[i]
-				emu.frameadvance()
+				emu.yield()
+		    emu.yield()
 			end
+			msg = msg .. ',' .. equipment[1] .. ',' .. equipment[2] .. ',' .. PASSWORD
 			client:send(msg)
 		end
 	  while true do
@@ -192,7 +201,7 @@ while true do
 					-- 	RECONATMP = RECONATMP + 1
 					-- 	printOutput("Attempting to reconnect (" .. RECONATMP .. "/3)")
 					-- end
-					-- emu.frameadvance()
+					-- emu.yield()
 					-- if RECONATMP == 3 then
 					-- 	break
 					-- end
@@ -208,16 +217,24 @@ while true do
 	        client:send("location," .. currentLocation)
 	      end
 	    end
+			-- When a new item is obtained, send it
 			if table.concat(items) ~= table.concat(mainmemory.readbyterange(0x11A644, 24)) then
 				items = mainmemory.readbyterange(0x11A644, 24)
 				msg = 'items'
 				for i=0,23 do
 					msg = msg .. "," .. items[i]
-					emu.frameadvance()
+					emu.yield()
+			    emu.yield()
 				end
 				client:send(msg)
 			end
-	    emu.frameadvance()
+			-- When new equipment is obtained, send it
+			if table.concat(equipment) ~= table.concat(mainmemory.readbyterange(0x11A66B,3)) then
+				equipment = mainmemory.readbyterange(0x11A66B,3)
+				client:send("equipment," .. equipment[1] .. ',' .. equipment[2])
+			end
+	    emu.yield()
+	    emu.yield()
 	  end
 	end
 end

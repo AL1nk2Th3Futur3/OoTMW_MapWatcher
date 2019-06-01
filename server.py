@@ -10,11 +10,42 @@ log.setLevel(logging.ERROR)
 # Holds all the information of the connected players
 PLAYERS = {}
 
+# Holds the optional password
+PASSWORD = b''
+
 # Setup stuff for the web server
 app = Flask(__name__, static_url_path="")
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 sio = socketio.Server(async_mode='threading')
 app.wsgi_app = socketio.Middleware(sio, app.wsgi_app)
+
+# Handle Sword/Shield equipment
+def get_ss(num):
+    tmp = []
+    num = bin(int(num)).replace("0b", "")
+    if len(num) != 7:
+        num = ("0"*(7-len(num))) + num
+    tmp.append(59) if num[6] == '1' else tmp.append(255)
+    tmp.append(60) if num[5] == '1' else tmp.append(255)
+    tmp.append(61) if num[4] == '1' else tmp.append(255)
+    tmp.append(62) if num[2] == '1' else tmp.append(255)
+    tmp.append(63) if num[1] == '1' else tmp.append(255)
+    tmp.append(64) if num[0] == '1' else tmp.append(255)
+    return tmp
+
+# Handle Tunic/Boots equipment
+def get_tb(num):
+    tmp = []
+    num = bin(int(num)).replace("0b", "")
+    if len(num) != 7:
+        num = ("0"*(7-len(num))) + num
+    tmp.append(65) if num[6] == '1' else tmp.append(255)
+    tmp.append(66) if num[5] == '1' else tmp.append(255)
+    tmp.append(67) if num[4] == '1' else tmp.append(255)
+    tmp.append(68) if num[2] == '1' else tmp.append(255)
+    tmp.append(69) if num[1] == '1' else tmp.append(255)
+    tmp.append(70) if num[0] == '1' else tmp.append(255)
+    return tmp
 
 # Function for the keepalive thread
 def keepalive(conn, addr):
@@ -48,12 +79,20 @@ def keepalive(conn, addr):
                 if message[0] == b'items':
                     PLAYERS[playerHash]['Items'] = [int(i) for i in message[1:25]]
                     sio.emit('sendPlayer', {'data':PLAYERS[playerHash], 'hash':playerHash})
+                # Used to handle getting new equipment
+                if message[0] == b'equipment':
+                    PLAYERS[playerHash]['Equipment'] = get_ss(message[2]) + get_tb(message[1])
+                    sio.emit('sendPlayer', {'data':PLAYERS[playerHash], 'hash':playerHash})
                 # Used to set the initial data for the player on first connection, sends data to webserver
                 if message[0] == b'username':
+                    # Check to see if provided password matches
+                    if message[30] != PASSWORD:
+                        return
                     PLAYERS[playerHash]['Username'] = message[1].decode()
                     PLAYERS[playerHash]['Location'] = message[2].decode()
                     PLAYERS[playerHash]['Colour'] = message[3].decode()
                     PLAYERS[playerHash]['Items'] = [int(i) for i in message[4:28]]
+                    PLAYERS[playerHash]['Equipment'] = get_ss(message[28]) + get_tb(message[29])
                     print('User has connected:', PLAYERS[playerHash]['Username'])
                     sio.emit("socketConnected",
                     {
@@ -99,18 +138,13 @@ def get_player():
         return Response(None, status=404)
 
 # Send the entire player list to the webserver
-@sio.on('getMap')
-def my_event(data):
-    sio.emit('sendMap', PLAYERS)
-
-# @sio.on('getPlayer')
-# def get_player(sid, data):
-#     print(sid)
-#     print(data)
-    # try:
-    #     sio.emit('sendPlayer', PLAYERS[data['playerHash']])
-    # except:
-    #     pass
+@app.route('/getMap', methods = ['GET'])
+def get_map():
+    try:
+        return Response(json.dumps(PLAYERS), status=200, mimetype='application/json')
+    except Exception as e:
+        print(e)
+        return Response(None, status=404)
 
 # Main function
 if __name__ == '__main__':
@@ -134,10 +168,15 @@ if __name__ == '__main__':
                 PORT = 50001
         except:
             PORT = 50001
+        try:
+            PASSWORD = bytes(input("Enter a password (Default none): ").encode())
+        except Exception as e:
+            print(e)
+            PASSWORD = b''
         decision = input("Save {}:{} for later use? ".format(HOST,PORT))
         if decision.lower() in ['y', 'yes', 'yeah', 'ye', 'oui']:
             with open("serverInfo.txt", 'w') as fil:
-                fil.write("{},{}".format(HOST,PORT))
+                fil.write("{},{},{}".format(HOST,PORT,PASSWORD))
             print("Server info saved for later reuse...\nStarting server now...")
 
     print("")

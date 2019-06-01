@@ -17,6 +17,9 @@
         <div class="items-icons">
 
         </div>
+        <div class="equipment-icons">
+
+        </div>
       </div>
     </div>
   </body>
@@ -30,7 +33,38 @@
       // Connect to the SocketIO server and ask for the players
       socket.on('connect', function() {
           $(".playerBox").remove();
-          socket.emit('getMap');
+          $.ajax({
+            url: '/getMap',
+            type: 'GET',
+            dataType: 'json',
+            data: {}
+          })
+          .done(function(Players) {
+            jQuery.each(Players, function (i, val) {
+              if ($('#'+i).length == 0) {
+                playerBox = $("<div></div>")
+                playerBox.attr('id', i)
+                playerBox.attr('class', 'playerBox')
+                playerBox.css('top', (LOCATIONS[this['Location']][0]-20)+'px')
+                playerBox.css('left', (LOCATIONS[this['Location']][1]-90)+'px')
+
+                  playerName = $("<span>"+this["Username"]+"</span>")
+                  playerName.attr('class', 'playerName')
+
+                  playerDot = $("<div></div>")
+                  playerDot.attr('class', "dot")
+                  playerDot.css('background-color', this['Colour'])
+
+
+                playerBox.append(playerName)
+                playerBox.append(playerDot)
+                $('.overworld').append(playerBox)
+              }
+            })
+          })
+          .fail(function() {
+            console.log("error");
+          })
       });
 
       // Clean up map on disconnect
@@ -38,48 +72,28 @@
         $(".playerBox").remove();
       })
 
-      // Place all player dots onto map
-      socket.on("sendMap", function (Players) {
-          jQuery.each(Players, function (i, val) {
-            playerBox = $("<div></div>")
-            playerBox.attr('id', i)
-            playerBox.attr('class', 'playerBox')
-            playerBox.css('top', (LOCATIONS[this['Location']][0]-20)+'px')
-            playerBox.css('left', (LOCATIONS[this['Location']][1]-90)+'px')
-
-              playerName = $("<span>"+this["Username"]+"</span>")
-              playerName.attr('class', 'playerName')
-
-              playerDot = $("<div></div>")
-              playerDot.attr('class', "dot")
-              playerDot.css('background-color', this['Colour'])
-
-
-            playerBox.append(playerName)
-            playerBox.append(playerDot)
-            $('.overworld').append(playerBox)
-          })
-      });
-
       // Add dot to map when a socket connects
       socket.on("socketConnected", function (data) {
-        playerBox = $("<div></div>")
-        playerBox.attr('id', data['id'])
-        playerBox.attr('class', 'playerBox')
-        playerBox.css('top', (LOCATIONS[data['location']][0]-20)+'px')
-        playerBox.css('left', (LOCATIONS[data['location']][1]-90)+'px')
+        $('#'+data['id']).remove()
+        if ($('#'+data['id']).length == 0) {
+          playerBox = $("<div></div>")
+          playerBox.attr('id', data['id'])
+          playerBox.attr('class', 'playerBox')
+          playerBox.css('top', (LOCATIONS[data['location']][0]-20)+'px')
+          playerBox.css('left', (LOCATIONS[data['location']][1]-90)+'px')
 
-          playerName = $("<span>"+data["username"]+"</span>")
-          playerName.attr('class', 'playerName')
+            playerName = $("<span>"+data["username"]+"</span>")
+            playerName.attr('class', 'playerName')
 
-          playerDot = $("<div></div>")
-          playerDot.attr('class', "dot")
-          playerDot.css('background-color', data['colour'])
+            playerDot = $("<div></div>")
+            playerDot.attr('class', "dot")
+            playerDot.css('background-color', data['colour'])
 
 
-        playerBox.append(playerName)
-        playerBox.append(playerDot)
-        $('.overworld').append(playerBox)
+          playerBox.append(playerName)
+          playerBox.append(playerDot)
+          $('.overworld').append(playerBox)
+        }
       });
 
       // Move the dot when a location changes
@@ -93,12 +107,11 @@
       });
 
       socket.on('sendPlayer', function (player) {
-        console.log(player)
         if (player['hash'] == watchedPlayer) {
           $('.icon').remove();
           for (var i = 0; i < player['data']['Items'].length; i++) {
             if (player['data']['Items'][i] == 255) {
-              iconImg = $('<img>')
+              iconImg = $('<div></div>')
               iconImg.attr('class', 'icon');
               $('.items-icons').append(iconImg);
               continue
@@ -108,16 +121,34 @@
             iconImg.attr('class', 'icon');
             $('.items-icons').append(iconImg);
           }
+          for (var i = 0; i < player['data']['Equipment'].length; i++) {
+            if (player['data']['Equipment'][i] == 255) {
+              iconImg = $('<div></div>')
+              iconImg.attr('class', 'icon');
+              $('.equipment-icons').append(iconImg);
+              continue
+            }
+            iconImg = $('<img>')
+            iconImg.attr('src', "/images/icons/" + player['data']['Equipment'][i] + ".png");
+            iconImg.attr('class', 'icon');
+            $('.equipment-icons').append(iconImg);
+          }
         }
       })
 
       // Remove the dot when socket disconnects
       socket.on("socketDisconnected", function (data) {
         $("#" + data['id']).remove();
+        if (watchedPlayer == data['id']) {
+          $('.icon').remove()
+          $(".items-name span").html('')
+          $('.items').css('display', 'none');
+        }
       });
 
       // Get a player's items
       $(".overworld").on("click", ".dot", function () {
+        $('.icon').remove();
         watchedPlayer = $(this).parent(".playerBox").attr('id');
         $.ajax({
           url: '/getPlayer',
@@ -132,7 +163,8 @@
           $(".items-name span").html(player['Username'])
           for (var i = 0; i < player['Items'].length; i++) {
             if (player['Items'][i] == 255) {
-              iconImg = $('<img>')
+              iconImg = $('<div></div>')
+              iconImg.attr('class', 'icon');
               $('.items-icons').append(iconImg);
               continue
             }
@@ -140,6 +172,18 @@
             iconImg.attr('src', "/images/icons/" + player['Items'][i] + ".png");
             iconImg.attr('class', 'icon');
             $('.items-icons').append(iconImg);
+          }
+          for (var i = 0; i < player['Equipment'].length; i++) {
+            if (player['Equipment'][i] == 255) {
+              iconImg = $('<div></div>')
+              iconImg.attr('class', 'icon');
+              $('.equipment-icons').append(iconImg);
+              continue
+            }
+            iconImg = $('<img>')
+            iconImg.attr('src', "/images/icons/" + player['Equipment'][i] + ".png");
+            iconImg.attr('class', 'icon');
+            $('.equipment-icons').append(iconImg);
           }
         })
         .fail(function() {
