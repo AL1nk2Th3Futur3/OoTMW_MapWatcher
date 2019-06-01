@@ -94,13 +94,7 @@ def keepalive(conn, addr):
                     PLAYERS[playerHash]['Items'] = [int(i) for i in message[4:28]]
                     PLAYERS[playerHash]['Equipment'] = get_ss(message[28]) + get_tb(message[29])
                     print('User has connected:', PLAYERS[playerHash]['Username'])
-                    sio.emit("socketConnected",
-                    {
-                        "id": playerHash,
-                        "username": PLAYERS[playerHash]['Username'],
-                        "location": PLAYERS[playerHash]['Location'],
-                        "colour": PLAYERS[playerHash]['Colour']
-                    })
+                    sio.emit("socketConnected", {'data':PLAYERS[playerHash], 'hash':playerHash})
 
             # If there's an error of any type, break out of the loop and kill the thread
             except Exception as e:
