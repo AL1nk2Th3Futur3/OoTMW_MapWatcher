@@ -52,7 +52,7 @@ body{
 }
 
 .players {
-  width: 400px;
+  width: 420px;
   height: 798px;
   border: none;
   /* border: 5px solid black;
@@ -88,10 +88,12 @@ body{
 }
 
 .icon-holder {
-  width: 200px;
-  border: 3px solid black;
-  border-top: none;
-  border-left: none;
+  width: 420px;
+  border-bottom: 3px solid black;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
 }
 
 .items-icons {
@@ -101,19 +103,121 @@ body{
   /* grid-template-rows: auto; */
   /* justify-content: center; */
   align-items: center;
-  border-bottom: 3px solid black;
+  border-right: 3px solid black;
+  width: 200px;
+  padding-bottom: 10px;
+  padding-top: 5px;
 }
 
 .equipment-icons {
   display: grid;
+  grid-template-columns: auto auto auto auto auto;
+  align-items: center;
+  width: 200px;
+}
+
+.upgrade-icons{
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-column-start: 1;
+  grid-column-end: 3;
+  grid-row-start: 1;
+  grid-row-end: 5;
+  /* background-color: yellow; */
+}
+
+.song-icons{
+  display: grid;
+  grid-template-columns: auto auto auto auto auto auto;
+  align-items: center;
+  width: 200px;
+  border-right: 3px solid black;
+}
+
+.boss-reward-icons{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.medal-icons{
+  display: grid;
+  grid-template-columns: auto auto auto auto auto auto;
+  align-items: center;
+  width: 200px;
+}
+
+.stone-icons{
+  display: grid;
   grid-template-columns: auto auto auto;
   align-items: center;
+  width: 200px;
+}
+
+.heart-icons{
+  display: grid;
+  grid-template-columns: 20px 20px 20px 20px 20px 20px 20px 20px 20px 20px ;
+  grid-template-rows: 20px 20px;
+  align-items: center;
+  width: 200px;
+  border-right: 3px solid black;
+  padding: 3px 5px 3px 3px;
+}
+
+.rupees{
+  display: grid;
+  align-items: center;
+  justify-content: center;
+  grid-template-columns: 20px auto;
+  border-right: 3px solid black;
+  padding-right: 5px;
+  height: 46px;
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+  z-index: 900;
+  text-shadow:
+   -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+     1px 1px 0 #000;
+}
+
+.skulltuas{
+  display: grid;
+  align-items: center;
+  justify-content: center;
+  grid-template-columns: 20px auto;
+  border-right: 3px solid black;
+  padding-right: 5px;
+  padding-left: 5px;
+  height: 46px;
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+  z-index: 900;
+  text-shadow:
+   -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+     1px 1px 0 #000;
+}
+
+.skulltuas span{
+  padding-left: 7px;
+}
+
+.card-and-stone-holder{
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  justify-content: center;
+  padding-left: 5px;
 }
 
 .icon {
   place-self: center;
-  width: 32px;
-  height: 32px;
   border: none;
 }
 

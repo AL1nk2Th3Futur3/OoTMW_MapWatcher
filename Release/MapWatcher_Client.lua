@@ -3,6 +3,7 @@ local socket = require('socket')
 local HOST, PORT, USERNAME, COLOUR, PASSWORD
 local RECONATMP = 0
 
+-- Store used credentials for later
 file = io.open("info.txt", 'r+')
 if not file then
 	file = io.open('info.txt', 'w+')
@@ -83,7 +84,13 @@ local currentLocation = mainmemory.read_u16_be(0x1C8544)
 -- local z = mainmemory.read_u16_be(0x1DAA5C)
 
 local items = mainmemory.readbyterange(0x11A644, 24)
-local equipment = mainmemory.readbyterange(0x11A66B,3)
+local equipment = mainmemory.readbyterange(0x11A66B, 3)
+local upgrades = mainmemory.readbyterange(0x11A670, 4)
+local questitems = mainmemory.readbyterange(0x11A674, 4)
+local maxhearts = mainmemory.read_u16_be(0x11A5FE)
+local currenthearts = mainmemory.read_u16_be(0x11A600)
+local rupees = mainmemory.read_u16_be(0x11A604)
+local skulltulas = mainmemory.read_u16_be(0x11A6A0)
 
 -- Connect button
 function Connect (args)
@@ -184,6 +191,17 @@ while true do
 		    emu.yield()
 			end
 			msg = msg .. ',' .. equipment[1] .. ',' .. equipment[2] .. ',' .. PASSWORD
+			for i=0,3 do
+				msg = msg .. "," .. upgrades[i]
+				emu.yield()
+		    emu.yield()
+			end
+			for i=0,3 do
+				msg = msg .. "," .. questitems[i]
+				emu.yield()
+		    emu.yield()
+			end
+			msg = msg .. ',' .. maxhearts  .. ',' .. currenthearts .. ',' .. rupees .. ',' .. skulltulas
 			client:send(msg)
 		end
 	  while true do
@@ -232,6 +250,60 @@ while true do
 			if table.concat(equipment) ~= table.concat(mainmemory.readbyterange(0x11A66B,3)) then
 				equipment = mainmemory.readbyterange(0x11A66B,3)
 				client:send("equipment," .. equipment[1] .. ',' .. equipment[2])
+			end
+			-- When an upgrade is obtained, send it
+			if table.concat(upgrades) ~= table.concat(mainmemory.readbyterange(0x11A670, 4)) then
+				upgrades = mainmemory.readbyterange(0x11A670, 4)
+				msg = 'upgrades'
+				for i=0,3 do
+					msg = msg .. "," .. upgrades[i]
+					emu.yield()
+			    emu.yield()
+				end
+				client:send(msg)
+			end
+			-- When a quest item is obtained, send it
+			if table.concat(questitems) ~= table.concat(mainmemory.readbyterange(0x11A674, 4)) then
+				questitems = mainmemory.readbyterange(0x11A674, 4)
+				msg = 'questitems'
+				for i=0,3 do
+					msg = msg .. "," .. questitems[i]
+					emu.yield()
+			    emu.yield()
+				end
+				client:send(msg)
+			end
+			-- When a new heart container is obtained, send it
+			-- WIP Sending live heart data
+			if maxhearts ~= mainmemory.read_u16_be(0x11A5FE) then --or currenthearts ~= mainmemory.read_u16_be(0x11A600) then
+				maxhearts = mainmemory.read_u16_be(0x11A5FE)
+				-- currenthearts = mainmemory.read_u16_be(0x11A600)
+				client:send("maxhearts," .. maxhearts)-- .. ',' .. currenthearts)
+			end
+			-- When rupees are gained/lost, send it
+			-- There has to be a better way to do this
+			if rupees ~= mainmemory.read_u16_be(0x11A604) then
+				rupees = mainmemory.read_u16_be(0x11A604)
+				local s = os.time()
+				while true do
+				  local n = os.time()
+				  emu.yield()
+				  emu.yield()
+				  if os.difftime(n, s) >= 1 then
+						client:send('ping,')
+						break
+			    else
+			      start = now
+			    end
+			  end
+				if rupees == mainmemory.read_u16_be(0x11A604) then
+					client:send("rupees," .. rupees)
+				end
+			end
+			-- When a skulltula is collected
+			if skulltulas ~= mainmemory.read_u16_be(0x11A6A0) then
+				skulltulas = mainmemory.read_u16_be(0x11A6A0)
+				client:send("skulltulas," .. skulltulas)
 			end
 	    emu.yield()
 	    emu.yield()

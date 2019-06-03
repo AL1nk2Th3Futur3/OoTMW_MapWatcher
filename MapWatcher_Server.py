@@ -47,6 +47,96 @@ def get_tb(num):
     tmp.append(70) if num[0] == '1' else tmp.append(255)
     return tmp
 
+# Handle Upgrades
+def get_up(num):
+    tmp = ""
+    for n in num:
+        tmp += bin(int(n)).replace('0b', '')
+    num = tmp
+    tmp = []
+    if len(num) != 23:
+        num = ("0"*(23-len(num))) + num
+    # Quiver
+    if num[22] == '1':
+        tmp.append(74)
+    elif num[21] == '1':
+        tmp.append(75)
+    elif num[20] == '1':
+        tmp.apend(76)
+    else:
+        tmp.append(255)
+    # Bomb Bag
+    if num[19] == '1':
+        tmp.append(77)
+    elif num[18] == '1':
+        tmp.append(78)
+    elif num[17] == '1':
+        tmp.apend(79)
+    else:
+        tmp.append(255)
+    # Gauntlet
+    if num[16] == '1':
+        tmp.append(80)
+    elif num[15] == '1':
+        tmp.append(81)
+    elif num[14] == '1':
+        tmp.apend(82)
+    else:
+        tmp.append(255)
+    # Scale
+    if num[13] == '1':
+        tmp.append(83)
+    elif num[12] == '1':
+        tmp.append(84)
+    else:
+        tmp.append(255)
+    # Wallet
+    if num[10] == '1':
+        tmp.append(86)
+    elif num[9] == '1':
+        tmp.append(87)
+    else:
+        tmp.append(255)
+    # Bullet Bag?
+    if num[5] == '1':
+        tmp.append(71)
+    elif num[4] == '1':
+        tmp.append(72)
+    elif num[3] == '1':
+        tmp.apend(73)
+    else:
+        tmp.append(255)
+
+    return tmp
+
+# Handle Quest Items
+def get_qi(num):
+    tmp = ""
+    for n in num:
+        tmp += bin(int(n)).replace('0b', '')
+    num = tmp
+    tmp = []
+    if len(num) != 32:
+        num = ("0"*(32-len(num))) + num
+    # Normal songs
+    for i in range(6):
+        tmp.append(96+i) if num[19-i] == '1' else tmp.append(255)
+    # Warp songs
+    for i in range(6):
+        tmp.append(90+i) if num[25-i] == '1' else tmp.append(255)
+    # Meallions
+    for i in range(6):
+        tmp.append(102+i) if num[31-i] == '1' else tmp.append(255)
+    # Stones
+    for i in range(3):
+        tmp.append(108+i) if num[13-i] == '1' else tmp.append(255)
+    # Stone of Agony and Geurudo Card
+    for i in range(2):
+        tmp.append(111+i) if num[10-i] == '1' else tmp.append(255)
+
+    return tmp
+
+
 # Function for the keepalive thread
 def keepalive(conn, addr):
     with conn:
@@ -83,6 +173,26 @@ def keepalive(conn, addr):
                 if message[0] == b'equipment':
                     PLAYERS[playerHash]['Equipment'] = get_ss(message[2]) + get_tb(message[1])
                     sio.emit('sendPlayer', {'data':PLAYERS[playerHash], 'hash':playerHash})
+                # Used to handle getting upgrades
+                if message[0] == b'upgrades':
+                    PLAYERS[playerHash]['Upgrades'] = get_up(message[1:5])
+                    sio.emit('sendPlayer', {'data':PLAYERS[playerHash], 'hash':playerHash})
+                # Used to handle getting quest items
+                if message[0] == b'questitems':
+                    PLAYERS[playerHash]['QuestItems'] = get_qi(message[1:5])
+                    sio.emit('sendPlayer', {'data':PLAYERS[playerHash], 'hash':playerHash})
+                # Used to handle getting a new heart
+                if message[0] == b'maxhearts':
+                    PLAYERS[playerHash]['Maxhearts'] = int(message[1]) / 16
+                    sio.emit('sendPlayer', {'data':PLAYERS[playerHash], 'hash':playerHash})
+                # Used to handle getting and losing rupees
+                if message[0] == b'rupees':
+                    PLAYERS[playerHash]['Rupees'] = int(message[1])
+                    sio.emit('sendPlayer', {'data':PLAYERS[playerHash], 'hash':playerHash})
+                # Used to handle getting skulltuas
+                if message[0] == b'skulltulas':
+                    PLAYERS[playerHash]['Skulltulas'] = int(message[1])
+                    sio.emit('sendPlayer', {'data':PLAYERS[playerHash], 'hash':playerHash})
                 # Used to set the initial data for the player on first connection, sends data to webserver
                 if message[0] == b'username':
                     # Check to see if provided password matches
@@ -93,6 +203,11 @@ def keepalive(conn, addr):
                     PLAYERS[playerHash]['Colour'] = message[3].decode()
                     PLAYERS[playerHash]['Items'] = [int(i) for i in message[4:28]]
                     PLAYERS[playerHash]['Equipment'] = get_ss(message[28]) + get_tb(message[29])
+                    PLAYERS[playerHash]['Upgrades'] = get_up(message[31:35])
+                    PLAYERS[playerHash]['QuestItems'] = get_qi(message[35:39])
+                    PLAYERS[playerHash]['Maxhearts'] = int(message[39]) / 16
+                    PLAYERS[playerHash]['Rupees'] = int(message[41])
+                    PLAYERS[playerHash]['Skulltulas'] = int(message[42])
                     print('User has connected:', PLAYERS[playerHash]['Username'])
                     sio.emit("socketConnected", {'data':PLAYERS[playerHash], 'hash':playerHash})
 
