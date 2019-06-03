@@ -128,7 +128,7 @@ body{
 
 .song-icons{
   display: grid;
-  grid-template-columns: auto auto auto auto auto auto;
+  grid-template-columns: 32px 32px 32px 32px 32px 32px;
   align-items: center;
   width: 200px;
   border-right: 3px solid black;
@@ -143,7 +143,7 @@ body{
 
 .medal-icons{
   display: grid;
-  grid-template-columns: auto auto auto auto auto auto;
+  grid-template-columns: 32px 32px 32px 32px 32px 32px;
   align-items: center;
   width: 200px;
 }
@@ -153,6 +153,7 @@ body{
   grid-template-columns: auto auto auto;
   align-items: center;
   width: 200px;
+  height: 32px;
 }
 
 .heart-icons{
