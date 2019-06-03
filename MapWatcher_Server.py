@@ -51,7 +51,10 @@ def get_tb(num):
 def get_up(num):
     tmp = ""
     for n in num:
-        tmp += bin(int(n)).replace('0b', '')
+        try:
+            tmp += bin(int(n)).replace('0b', '')
+        except:
+            pass
     num = tmp
     tmp = []
     if len(num) != 23:
