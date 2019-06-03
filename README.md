@@ -43,4 +43,4 @@ This application assumes you know how to port forward
 
 ### Accessing Map
 
-The map should be accessible at your host's IP address
+The map should be accessible at your host's IP address through your web browser
