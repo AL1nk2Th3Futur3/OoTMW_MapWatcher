@@ -21,7 +21,7 @@ This application assumes you know how to port forward
 
 6. Enter your desired settings (default is acceptable. Feel free to add a password)
 
-7. Port forward ports 80 and 50001 (or whatever port you decided on in step 6) to your machine
+7. Port forward ports 8000 and 50001 (or whatever port you decided on in step 6) to your machine
 
 
 ### Client
@@ -43,4 +43,6 @@ This application assumes you know how to port forward
 
 ### Accessing Map
 
-The map should be accessible at your host's IP address through your web browser
+The map should be accessible at your host's IP address at port 8000 through your web browser
+
+IE: http://<ip>:8000
