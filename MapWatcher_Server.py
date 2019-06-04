@@ -143,7 +143,7 @@ def get_qi(num):
 # Function for the keepalive thread
 def keepalive(conn, addr):
     with conn:
-        conn.settimeout(6)
+        conn.settimeout(15)
         # Create a unique player hash ID
         playerHash = hashlib.sha256(str(time.time).encode()).hexdigest() + hashlib.sha256(str(hash(conn)).encode()).hexdigest()
         playerHash = hashlib.sha256(playerHash.encode()).hexdigest()

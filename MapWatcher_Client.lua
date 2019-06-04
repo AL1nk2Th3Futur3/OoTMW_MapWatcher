@@ -26,16 +26,16 @@ file:close()
 
 -- Handle the closing of the application
 event.onexit(function ()
-	client:close()
-	forms.destroy(mainform)
+	clientMap:close()
+	forms.destroy(mainformMap)
 end)
 
--- Add a line to the output. Inserts a timestamp to the string
+-- Add a line to the outputMap. Inserts a timestamp to the string
 -- Taken directly from bizhawk co-op.lua
-function printOutput(str)
-	local text = forms.gettext(output)
+function printOutputMap(str)
+	local text = forms.gettext(outputMap)
 	local pos = #text
-	forms.setproperty(output, "SelectionStart", pos)
+	forms.setproperty(outputMap, "SelectionStart", pos)
 
 	str = string.gsub (str, "\n", "\r\n")
 	str = "[" .. os.date("%H:%M:%S", os.time()) .. "] " .. str
@@ -43,7 +43,7 @@ function printOutput(str)
 		str = "\r\n" .. str
 	end
 
-	forms.setproperty(output, "SelectedText", str)
+	forms.setproperty(outputMap, "SelectedText", str)
 end
 
 -- Keepalive function. Sends a ping every second telling the server it's still here
@@ -54,19 +54,19 @@ function keepalive ()
 		emu.yield()
 		emu.yield()
     if os.difftime(now, start) >= 5 then
-      pong = client:send("ping,")
+      pong = clientMap:send("ping,")
 			emu.yield()
 	    emu.yield()
       if not pong then
-        printOutput("Disconnected from server")
+        printOutputMap("Disconnected from server")
         HOST, PORT, USERNAME, COLOUR = nil
-				client:close()
+				clientMap:close()
 				forms.setproperty(connect, 'Enabled', true)
 				forms.setproperty(disconnect, 'Enabled', false)
 				start = now
         coroutine.yield(true)
       else
-	      -- s, status, partial = client:receive("*l")
+	      -- s, status, partial = clientMap:receive("*l")
 	      start = now
 			end
     end
@@ -120,28 +120,28 @@ end
 function Disconnect (args)
 	disconn = true
 	HOST, PORT, USERNAME, COLOUR = nil
-	printOutput("Disconnected from server")
+	printOutputMap("Disconnected from server")
   forms.setproperty(connect, 'Enabled', true)
   forms.setproperty(disconnect, 'Enabled', false)
 end
 
 -- GUI
-mainform = forms.newform(370, 265, "Map Watcher")
-usernameTxt = forms.textbox(mainform, un, 90, 20, nil, 70, 20, false, false)
-hostTxt = forms.textbox(mainform, ip, 90, 20, nil, 70, 50, false, false)
-portTxt = forms.textbox(mainform, pt, 90, 20, nil, 70, 80, false, false)
-colourTxt = forms.textbox(mainform, cl, 90, 20, nil, 70, 110, false, false)
-passwordTxt = forms.textbox(mainform, "", 90, 20, nil, 70, 140, false, false)
-lblUsername = forms.label(mainform, "Username:", 10, 22)
-lblHost = forms.label(mainform, "Host IP:", 22, 52)
-lblPort = forms.label(mainform, "Port:", 38, 82)
-lblColour = forms.label(mainform, "Colour:", 27, 112)
-lblPassword = forms.label(mainform, "Password:", 10, 142)
-output = forms.textbox(mainform, "", 170, 195, nil, 170, 20, true, true, 'Vertical')
-forms.setproperty(output, "ReadOnly", true)
+mainformMap = forms.newform(370, 265, "Map Watcher")
+usernameTxt = forms.textbox(mainformMap, un, 90, 20, nil, 70, 20, false, false)
+hostTxt = forms.textbox(mainformMap, ip, 90, 20, nil, 70, 50, false, false)
+portTxt = forms.textbox(mainformMap, pt, 90, 20, nil, 70, 80, false, false)
+colourTxt = forms.textbox(mainformMap, cl, 90, 20, nil, 70, 110, false, false)
+passwordTxt = forms.textbox(mainformMap, "", 90, 20, nil, 70, 140, false, false)
+lblUsername = forms.label(mainformMap, "Username:", 10, 22)
+lblHost = forms.label(mainformMap, "Host IP:", 22, 52)
+lblPort = forms.label(mainformMap, "Port:", 38, 82)
+lblColour = forms.label(mainformMap, "Colour:", 27, 112)
+lblPassword = forms.label(mainformMap, "Password:", 10, 142)
+outputMap = forms.textbox(mainformMap, "", 170, 195, nil, 170, 20, true, true, 'Vertical')
+forms.setproperty(outputMap, "ReadOnly", true)
 forms.setproperty(passwordTxt, 'PasswordChar', '*')
-connect = forms.button(mainform, "Connect", Connect, 10, 170, 151, 20)
-disconnect = forms.button(mainform, "Disconnect", Disconnect, 10, 195, 151, 20)
+connect = forms.button(mainformMap, "Connect", Connect, 10, 170, 151, 20)
+disconnect = forms.button(mainformMap, "Disconnect", Disconnect, 10, 195, 151, 20)
 forms.setproperty(disconnect, 'Enabled', false)
 
 -- Checks to see if connection information is provided
@@ -152,10 +152,10 @@ function checkInfo ()
 	    emu.yield()
 			coroutine.yield(false)
     else
-      -- Create the client and connect
-      printOutput("Attempting to connect to server...")
-      client, err = socket.connect(HOST, PORT)
-			client:setoption('linger', {['on']=false, ['timeout']=0})
+      -- Create the clientMap and connect
+      printOutputMap("Attempting to connect to server...")
+      clientMap, err = socket.connect(HOST, PORT)
+			clientMap:setoption('linger', {['on']=false, ['timeout']=0})
       coroutine.yield(true)
     end
   end
@@ -169,20 +169,20 @@ checkRoutine = coroutine.create(checkInfo)
 -- Main loop
 while true do
 	disconn = false
-	-- End script if mainform is closed
-	if forms.gettext(mainform) == "" then
+	-- End script if mainformMap is closed
+	if forms.gettext(mainformMap) == "" then
 		return
 	end
   status, retInfo = coroutine.resume(checkRoutine)
 	if retInfo then
 		-- If the socket couldn't connect, print and message and end everything
 		if err then
-			printOutput("Cannot connect to " .. HOST .. " on port " .. PORT)
+			printOutputMap("Cannot connect to " .. HOST .. " on port " .. PORT)
 			HOST, PORT, USERNAME, COLOUR = nil
 		  forms.setproperty(connect, 'Enabled', true)
 		  forms.setproperty(disconnect, 'Enabled', false)
 		else
-			printOutput("Connected to server!")
+			printOutputMap("Connected to server!")
 			-- Send the identifying information to the server and start the main loop
 			msg = "username," .. USERNAME .. "," .. currentLocation .. "," .. COLOUR
 			for i=0,23 do
@@ -202,11 +202,11 @@ while true do
 		    emu.yield()
 			end
 			msg = msg .. ',' .. maxhearts  .. ',' .. currenthearts .. ',' .. rupees .. ',' .. skulltulas
-			client:send(msg)
+			clientMap:send(msg)
 		end
 	  while true do
-			-- End script if mainform is closed
-			if forms.gettext(mainform) == "" then
+			-- End script if mainformMap is closed
+			if forms.gettext(mainformMap) == "" then
 				return
 			end
 	    -- Start the keepalive routine
@@ -214,10 +214,10 @@ while true do
 			-- print(status)
 	    if status then
 				-- Reconnection code WIP
-					-- client, err = socket.connect(HOST, PORT)
+					-- clientMap, err = socket.connect(HOST, PORT)
 					-- if err then
 					-- 	RECONATMP = RECONATMP + 1
-					-- 	printOutput("Attempting to reconnect (" .. RECONATMP .. "/3)")
+					-- 	printOutputMap("Attempting to reconnect (" .. RECONATMP .. "/3)")
 					-- end
 					-- emu.yield()
 					-- if RECONATMP == 3 then
@@ -232,7 +232,7 @@ while true do
 	    if currentLocation ~= mainmemory.read_u16_be(0x1C8544) then
 	      currentLocation = mainmemory.read_u16_be(0x1C8544)
 	      if currentLocation <= 109 then
-	        client:send("location," .. currentLocation)
+	        clientMap:send("location," .. currentLocation)
 	      end
 	    end
 			-- When a new item is obtained, send it
@@ -244,12 +244,12 @@ while true do
 					emu.yield()
 			    emu.yield()
 				end
-				client:send(msg)
+				clientMap:send(msg)
 			end
 			-- When new equipment is obtained, send it
 			if table.concat(equipment) ~= table.concat(mainmemory.readbyterange(0x11A66B,3)) then
 				equipment = mainmemory.readbyterange(0x11A66B,3)
-				client:send("equipment," .. equipment[1] .. ',' .. equipment[2])
+				clientMap:send("equipment," .. equipment[1] .. ',' .. equipment[2])
 			end
 			-- When an upgrade is obtained, send it
 			if table.concat(upgrades) ~= table.concat(mainmemory.readbyterange(0x11A670, 4)) then
@@ -260,7 +260,7 @@ while true do
 					emu.yield()
 			    emu.yield()
 				end
-				client:send(msg)
+				clientMap:send(msg)
 			end
 			-- When a quest item is obtained, send it
 			if table.concat(questitems) ~= table.concat(mainmemory.readbyterange(0x11A674, 4)) then
@@ -271,14 +271,14 @@ while true do
 					emu.yield()
 			    emu.yield()
 				end
-				client:send(msg)
+				clientMap:send(msg)
 			end
 			-- When a new heart container is obtained, send it
 			-- WIP Sending live heart data
 			if maxhearts ~= mainmemory.read_u16_be(0x11A5FE) then --or currenthearts ~= mainmemory.read_u16_be(0x11A600) then
 				maxhearts = mainmemory.read_u16_be(0x11A5FE)
 				-- currenthearts = mainmemory.read_u16_be(0x11A600)
-				client:send("maxhearts," .. maxhearts)-- .. ',' .. currenthearts)
+				clientMap:send("maxhearts," .. maxhearts)-- .. ',' .. currenthearts)
 			end
 			-- When rupees are gained/lost, send it
 			-- There has to be a better way to do this
@@ -290,20 +290,20 @@ while true do
 				  emu.yield()
 				  emu.yield()
 				  if os.difftime(n, s) >= 1 then
-						client:send('ping,')
+						clientMap:send('ping,')
 						break
 			    else
 			      start = now
 			    end
 			  end
 				if rupees == mainmemory.read_u16_be(0x11A604) then
-					client:send("rupees," .. rupees)
+					clientMap:send("rupees," .. rupees)
 				end
 			end
 			-- When a skulltula is collected
 			if skulltulas ~= mainmemory.read_u16_be(0x11A6A0) then
 				skulltulas = mainmemory.read_u16_be(0x11A6A0)
-				client:send("skulltulas," .. skulltulas)
+				clientMap:send("skulltulas," .. skulltulas)
 			end
 	    emu.yield()
 	    emu.yield()
