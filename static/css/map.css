@@ -1,0 +1,268 @@
+body{
+  background-color: rgb(0, 61, 10);
+}
+
+.map-container{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  visibility: hidden;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.overworld{
+  position: relative;
+}
+
+.overworld img {
+  border: 5px solid black;
+}
+
+.area {
+  visibility: hidden;
+  display: grid;
+  grid-template-columns: 17px auto;
+  /* background-color: lime; */
+  /* color:purple; */
+  /* font-weight: 400; */
+  position: absolute;
+  width: 100px;
+  /* height: 50px; */
+  top: 0;
+  left: 0;
+  z-index: 1000;
+}
+
+.dot {
+  /* position: absolute; */
+  width: 10px;
+  height: 10px;
+  background-color: white;
+  border-radius: 90px;
+  border-color: black;
+  animation: colourDot 2s ease-in-out infinite alternate;
+}
+
+.playerNames {
+  display: flex;
+  flex-direction: column;
+}
+
+.playerName {
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    z-index: 900;
+    /* margin-left: 5px; */
+    text-shadow:
+     -1px -1px 0 #000,
+      1px -1px 0 #000,
+      -1px 1px 0 #000,
+       1px 1px 0 #000;
+}
+
+.playerBox {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 999;
+    /* width: 200px; */
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row-reverse;
+    transform-origin: center center;
+}
+
+.players {
+  width: 420px;
+  height: 813px;
+  border: none;
+  /* border: 5px solid black;
+  border-left: none; */
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* display: none; */
+}
+
+.player-inventory {
+  border: 5px solid black;
+  border-left: none;
+  padding-bottom: 10px;
+}
+
+.player-name {
+  border: 5px solid black;
+  border-left: none;
+  background-color: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-name span {
+  color: white;
+  font-size: 30px;
+  font-weight: 600;
+  z-index: 900;
+  text-shadow:
+   -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+     1px 1px 0 #000;
+}
+
+.icon-holder {
+  width: 415px;
+  border-bottom: 3px solid black;
+  border-right: 5px solid black;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.items-icons {
+  display: grid;
+  /* grid-template-columns: 50px 50px 50px 50px 50px 50px; */
+  grid-template-columns: auto auto auto auto auto auto;
+  /* grid-template-rows: auto; */
+  /* justify-content: center; */
+  align-items: center;
+  border-right: 3px solid black;
+  width: 200px;
+  padding-bottom: 10px;
+  padding-top: 5px;
+}
+
+.equipment-icons {
+  display: grid;
+  grid-template-columns: auto auto auto auto auto;
+  align-items: center;
+  width: 200px;
+}
+
+.upgrade-icons{
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-column-start: 1;
+  grid-column-end: 3;
+  grid-row-start: 1;
+  grid-row-end: 5;
+  /* background-color: yellow; */
+}
+
+.song-icons{
+  display: grid;
+  grid-template-columns: 32px 32px 32px 32px 32px 32px;
+  grid-template-rows: 32px 32px;
+  align-items: center;
+  width: 200px;
+  border-right: 3px solid black;
+}
+
+.boss-reward-icons{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.medal-icons{
+  display: grid;
+  grid-template-columns: 32px 32px 32px 32px 32px 32px;
+  align-items: center;
+  width: 200px;
+}
+
+.stone-icons{
+  display: grid;
+  grid-template-columns: auto auto auto;
+  align-items: center;
+  width: 200px;
+  height: 32px;
+}
+
+.heart-icons{
+  display: grid;
+  grid-template-columns: 20px 20px 20px 20px 20px 20px 20px 20px 20px 20px ;
+  grid-template-rows: 20px 20px;
+  align-items: center;
+  width: 200px;
+  border-right: 3px solid black;
+  padding: 3px 3px 3px 3px;
+}
+
+.rupees{
+  display: grid;
+  align-items: center;
+  justify-content: center;
+  grid-template-columns: 20px auto;
+  border-right: 3px solid black;
+  padding-right: 5px;
+  height: 46px;
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+  z-index: 900;
+  text-shadow:
+   -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+     1px 1px 0 #000;
+}
+
+.skulltulas{
+  display: grid;
+  align-items: center;
+  justify-content: center;
+  grid-template-columns: 20px auto;
+  border-right: 3px solid black;
+  padding-right: 5px;
+  padding-left: 5px;
+  height: 46px;
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+  z-index: 900;
+  text-shadow:
+   -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+     1px 1px 0 #000;
+}
+
+.skulltulas span{
+  padding-left: 7px;
+}
+
+.card-and-stone-holder{
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  justify-content: center;
+  padding-left: 5px;
+}
+
+.icon {
+  place-self: center;
+  border: none;
+}
+
+
+
+@keyframes colourDot{
+  from {
+    box-shadow: 0 0 5px rgb(0,0,0);
+    transform: scale(1);
+  }
+  to {
+    box-shadow: 0 0 15px rgb(0,0,0);
+    transform: scale(2);
+  }
+}

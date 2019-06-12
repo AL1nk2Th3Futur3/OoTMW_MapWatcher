@@ -1,300 +1,240 @@
-import socket, threading, hashlib, time, os, json
+import socket, threading, hashlib, time, os, json, random
 from flask import Flask, request, render_template, Response
 import socketio
+from parsers import *
 
 # Trying to keep console clutter to a minimum
 import logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
-# Holds all the information of the connected players
-PLAYERS = {}
-
-# Holds the optional password
-PASSWORD = b''
-
-# Setup stuff for the web server
 app = Flask(__name__, static_url_path="")
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 sio = socketio.Server(async_mode='threading')
 app.wsgi_app = socketio.Middleware(sio, app.wsgi_app)
 
-# Handle Sword/Shield equipment
-def get_ss(num):
-    tmp = []
-    num = bin(int(num)).replace("0b", "")
-    if len(num) != 7:
-        num = ("0"*(7-len(num))) + num
-    tmp.append(59) if num[6] == '1' else tmp.append(255)
-    tmp.append(60) if num[5] == '1' else tmp.append(255)
-    tmp.append(61) if num[4] == '1' else tmp.append(255)
-    tmp.append(62) if num[2] == '1' else tmp.append(255)
-    tmp.append(63) if num[1] == '1' else tmp.append(255)
-    tmp.append(64) if num[0] == '1' else tmp.append(255)
-    return tmp
+PLAYERS = {}
+ROOMS = {}
 
-# Handle Tunic/Boots equipment
-def get_tb(num):
-    tmp = []
-    num = bin(int(num)).replace("0b", "")
-    if len(num) != 7:
-        num = ("0"*(7-len(num))) + num
-    tmp.append(65) if num[6] == '1' else tmp.append(255)
-    tmp.append(66) if num[5] == '1' else tmp.append(255)
-    tmp.append(67) if num[4] == '1' else tmp.append(255)
-    tmp.append(68) if num[2] == '1' else tmp.append(255)
-    tmp.append(69) if num[1] == '1' else tmp.append(255)
-    tmp.append(70) if num[0] == '1' else tmp.append(255)
-    return tmp
-
-# Handle Upgrades
-def get_up(num):
-    tmp = ""
-    for n in num:
-        try:
-            tmp += bin(int(n)).replace('0b', '')
-        except:
-            pass
-    num = tmp
-    tmp = []
-    if len(num) != 23:
-        num = ("0"*(23-len(num))) + num
-    # Quiver
-    if num[22] == '1':
-        tmp.append(74)
-    elif num[21] == '1':
-        tmp.append(75)
-    elif num[20] == '1':
-        tmp.apend(76)
-    else:
-        tmp.append(255)
-    # Bomb Bag
-    if num[19] == '1':
-        tmp.append(77)
-    elif num[18] == '1':
-        tmp.append(78)
-    elif num[17] == '1':
-        tmp.apend(79)
-    else:
-        tmp.append(255)
-    # Gauntlet
-    if num[16] == '1':
-        tmp.append(80)
-    elif num[15] == '1':
-        tmp.append(81)
-    elif num[14] == '1':
-        tmp.apend(82)
-    else:
-        tmp.append(255)
-    # Scale
-    if num[13] == '1':
-        tmp.append(83)
-    elif num[12] == '1':
-        tmp.append(84)
-    else:
-        tmp.append(255)
-    # Wallet
-    if num[10] == '1':
-        tmp.append(86)
-    elif num[9] == '1':
-        tmp.append(87)
-    else:
-        tmp.append(255)
-    # Bullet Bag?
-    if num[5] == '1':
-        tmp.append(71)
-    elif num[4] == '1':
-        tmp.append(72)
-    elif num[3] == '1':
-        tmp.apend(73)
-    else:
-        tmp.append(255)
-
-    return tmp
-
-# Handle Quest Items
-def get_qi(num):
-    tmp = ""
-    for n in num:
-        tmp += bin(int(n)).replace('0b', '')
-    num = tmp
-    tmp = []
-    if len(num) != 32:
-        num = ("0"*(32-len(num))) + num
-    # Normal songs
-    for i in range(6):
-        tmp.append(96+i) if num[19-i] == '1' else tmp.append(255)
-    # Warp songs
-    for i in range(6):
-        tmp.append(90+i) if num[25-i] == '1' else tmp.append(255)
-    # Meallions
-    for i in range(6):
-        tmp.append(102+i) if num[31-i] == '1' else tmp.append(255)
-    # Stones
-    for i in range(3):
-        tmp.append(108+i) if num[13-i] == '1' else tmp.append(255)
-    # Stone of Agony and Geurudo Card
-    for i in range(2):
-        tmp.append(111+i) if num[10-i] == '1' else tmp.append(255)
-
-    return tmp
-
-
-# Function for the keepalive thread
-def keepalive(conn, addr):
+def Client(conn, addr):
     with conn:
-        conn.settimeout(15)
         # Create a unique player hash ID
         playerHash = hashlib.sha256(str(time.time).encode()).hexdigest() + hashlib.sha256(str(hash(conn)).encode()).hexdigest()
         playerHash = hashlib.sha256(playerHash.encode()).hexdigest()
         PLAYERS[playerHash] = {}
 
-        # Function loop
+        conn.settimeout(15)
         while True:
             try:
-                # Wait until data is received and then deal with it
                 data = conn.recv(1024)
-                if not data: break
-                message = data.split(b',')
-                # If ping send pong, works to ensure the connection is still good
-                if message[0] == b'ping':
-                    # conn.sendall(b'pong' + b'\n')
-                    pass
-                # If the client says the player's location has changed, update the PLAYERS dict and send it to the webserver
-                if message[0] == b'location':
-                    PLAYERS[playerHash]['Location'] = int(message[1])
-                    sio.emit("updateMap",
-                    {
-                        "id": playerHash,
-                        "location": PLAYERS[playerHash]['Location']
-                    })
-                # Used to handle getting new items
-                if message[0] == b'items':
-                    PLAYERS[playerHash]['Items'] = [int(i) for i in message[1:25]]
-                    sio.emit('sendPlayer', {'data':PLAYERS[playerHash], 'hash':playerHash})
-                # Used to handle getting new equipment
-                if message[0] == b'equipment':
-                    PLAYERS[playerHash]['Equipment'] = get_ss(message[2]) + get_tb(message[1])
-                    sio.emit('sendPlayer', {'data':PLAYERS[playerHash], 'hash':playerHash})
-                # Used to handle getting upgrades
-                if message[0] == b'upgrades':
-                    PLAYERS[playerHash]['Upgrades'] = get_up(message[1:5])
-                    sio.emit('sendPlayer', {'data':PLAYERS[playerHash], 'hash':playerHash})
-                # Used to handle getting quest items
-                if message[0] == b'questitems':
-                    PLAYERS[playerHash]['QuestItems'] = get_qi(message[1:5])
-                    sio.emit('sendPlayer', {'data':PLAYERS[playerHash], 'hash':playerHash})
-                # Used to handle getting a new heart
-                if message[0] == b'maxhearts':
-                    PLAYERS[playerHash]['Maxhearts'] = int(message[1]) / 16
-                    sio.emit('sendPlayer', {'data':PLAYERS[playerHash], 'hash':playerHash})
-                # Used to handle getting and losing rupees
-                if message[0] == b'rupees':
-                    PLAYERS[playerHash]['Rupees'] = int(message[1])
-                    sio.emit('sendPlayer', {'data':PLAYERS[playerHash], 'hash':playerHash})
-                # Used to handle getting skulltuas
-                if message[0] == b'skulltulas':
-                    PLAYERS[playerHash]['Skulltulas'] = int(message[1])
-                    sio.emit('sendPlayer', {'data':PLAYERS[playerHash], 'hash':playerHash})
-                # Used to set the initial data for the player on first connection, sends data to webserver
-                if message[0] == b'username':
-                    # Check to see if provided password matches
-                    if message[30] != PASSWORD:
-                        return
-                    PLAYERS[playerHash]['Username'] = message[1].decode()
-                    PLAYERS[playerHash]['Location'] = message[2].decode()
-                    PLAYERS[playerHash]['Colour'] = message[3].decode()
-                    PLAYERS[playerHash]['Items'] = [int(i) for i in message[4:28]]
-                    PLAYERS[playerHash]['Equipment'] = get_ss(message[28]) + get_tb(message[29])
-                    PLAYERS[playerHash]['Upgrades'] = get_up(message[31:35])
-                    PLAYERS[playerHash]['QuestItems'] = get_qi(message[35:39])
-                    PLAYERS[playerHash]['Maxhearts'] = int(message[39]) / 16
-                    PLAYERS[playerHash]['Rupees'] = int(message[41])
-                    PLAYERS[playerHash]['Skulltulas'] = int(message[42])
-                    print('User has connected:', PLAYERS[playerHash]['Username'])
-                    sio.emit("socketConnected", {'data':PLAYERS[playerHash], 'hash':playerHash})
-
-            # If there's an error of any type, break out of the loop and kill the thread
-            except Exception as e:
-                print(e)
+                print(data)
+            except socket.timeout:
+                print('Timed out')
+                conn.close()
                 break
-        # Send a disconnected message and clean up the player's data
-        sio.emit("socketDisconnected", {"id": playerHash})
-        print(PLAYERS[playerHash]['Username'], "has disconnected")
-        del PLAYERS[playerHash]
+            if not data: break
+            message = data.decode().split(',')
 
-# Listens for connections to the server
-def listenForConnections():
+            # Initial settings on join
+            if message[0] == 'join':
+                if message[5] in ROOMS[message[3]]['Players']:
+                    ROOMS[message[3]]['Players'].remove(message[5])
+                    ROOMS[message[3]]['Players'].append(playerHash)
+                    PLAYERS[playerHash]['Id'] = playerHash
+                    PLAYERS[playerHash]['Username'] = message[1]
+                    PLAYERS[playerHash]['Colour'] = message[2]
+                    PLAYERS[playerHash]['Room'] = message[3]
+                    PLAYERS[playerHash]['Location'] = int(message[6])
+                    PLAYERS[playerHash]['Items'] = [int(i) for i in message[7:31]]
+                    PLAYERS[playerHash]['Equipment'] = get_ss(message[32]) + get_tb(message[31])
+                    PLAYERS[playerHash]['Upgrades'] = get_up(message[33:37])
+                    PLAYERS[playerHash]['QuestItems'] = get_qi(message[37:41])
+                    PLAYERS[playerHash]['MaxHearts'] = int(message[41]) / 16
+                    # PLAYERS[playerHash]['CurrentHearts'] = int(message[42])
+                    PLAYERS[playerHash]['Rupees'] = int(message[43])
+                    PLAYERS[playerHash]['Skulltulas'] = int(message[44])
+
+                    sio.emit('sendPlayer', PLAYERS[playerHash], room=PLAYERS[playerHash]['Room'])
+            # Update a player's location
+            if message[0] == 'location':
+                PLAYERS[playerHash]['Location'] = int(message[1])
+                sio.emit(
+                    'updateLocation',
+                    {
+                        'Id': PLAYERS[playerHash]['Id'],
+                        'Location': PLAYERS[playerHash]['Location'],
+                        'Colour': PLAYERS[playerHash]['Colour'],
+                        'Username': PLAYERS[playerHash]['Username']
+                    },
+                    room=PLAYERS[playerHash]['Room']
+                )
+
+            # Update a player's items
+            if message[0] == 'items':
+                PLAYERS[playerHash]['Items'] = [int(i) for i in message[1:25]]
+                sio.emit(
+                    'updateItems',
+                    {
+                        'Id': PLAYERS[playerHash]['Id'],
+                        'Items': PLAYERS[playerHash]['Items']
+                    },
+                    room=PLAYERS[playerHash]['Room']
+                )
+
+            # Update a player's equipment
+            if message[0] == 'equipment':
+                PLAYERS[playerHash]['Equipment'] = get_ss(message[2]) + get_tb(message[1])
+                sio.emit(
+                    'updateEquipment',
+                    {
+                        'Id': PLAYERS[playerHash]['Id'],
+                        'Equipment': PLAYERS[playerHash]['Equipment']
+                    },
+                    room=PLAYERS[playerHash]['Room']
+                )
+
+            # Update a player's upgrades
+            if message[0] == 'upgrades':
+                PLAYERS[playerHash]['Upgrades'] = get_up(message[1:5])
+                sio.emit(
+                    'updateUpgrades',
+                    {
+                        'Id': PLAYERS[playerHash]['Id'],
+                        'Upgrades': PLAYERS[playerHash]['Upgrades']
+                    },
+                    room=PLAYERS[playerHash]['Room']
+                )
+
+            # Update a player's quest items
+            if message[0] == 'questitems':
+                PLAYERS[playerHash]['QuestItems'] = get_qi(message[1:5])
+                sio.emit(
+                    'updateQuestItems',
+                    {
+                        'Id': PLAYERS[playerHash]['Id'],
+                        'QuestItems': PLAYERS[playerHash]['QuestItems']
+                    },
+                    room=PLAYERS[playerHash]['Room']
+                )
+
+            # Update a player's max hearts
+            if message[0] == 'maxhearts':
+                PLAYERS[playerHash]['MaxHearts'] = int(message[1]) / 16
+                sio.emit(
+                    'updateMaxHearts',
+                    {
+                        'Id': PLAYERS[playerHash]['Id'],
+                        'MaxHearts': PLAYERS[playerHash]['MaxHearts']
+                    },
+                    room=PLAYERS[playerHash]['Room']
+                )
+
+            # Update a player's rupees
+            if message[0] == 'rupees':
+                PLAYERS[playerHash]['Rupees'] = int(message[1])
+                sio.emit(
+                    'updateRupees',
+                    {
+                        'Id': PLAYERS[playerHash]['Id'],
+                        'Rupees': PLAYERS[playerHash]['Rupees']
+                    },
+                    room=PLAYERS[playerHash]['Room']
+                )
+
+            # Update a player's skulltulas
+            if message[0] == 'skulltulas':
+                PLAYERS[playerHash]['Skulltulas'] = int(message[1])
+                sio.emit(
+                    'updateSkulltulas',
+                    {
+                        'Id': PLAYERS[playerHash]['Id'],
+                        'Skulltulas': PLAYERS[playerHash]['Skulltulas']
+                    },
+                    room=PLAYERS[playerHash]['Room']
+                )
+
+        sio.emit('remPlayer', PLAYERS[playerHash], room=PLAYERS[playerHash]['Room'])
+        print(ROOMS, PLAYERS)
+        ROOMS[PLAYERS[playerHash]['Room']]['Players'].remove(playerHash)
+        if len(ROOMS[PLAYERS[playerHash]['Room']]['Players']) == 0:
+            del ROOMS[PLAYERS[playerHash]['Room']]
+        del PLAYERS[playerHash]
+        print(ROOMS, PLAYERS)
+        print("Closed")
+
+
+def SocketServer():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.bind((HOST, PORT))
-        # When a new connection is made, create a new keepalive thread for it
+        sock.bind(('0.0.0.0', 50001))
         while True:
             sock.listen()
             conn, addr = sock.accept()
-            t = threading.Thread(target=keepalive, args=(conn, addr))
+            t = threading.Thread(target=Client, args=(conn, addr))
             t.start()
+            print(threading.active_count())
 
-# Render the main html page
-@app.route('/')
+def RoomCheck(room, playerHash):
+    time.sleep(1)
+    if room in ROOMS:
+        if playerHash in ROOMS[room]['Players']:
+            ROOMS[room]['Players'].remove(playerHash)
+            if len(ROOMS[room]['Players']) == 0:
+                del ROOMS[room]
+
+@app.route('/checkRoom', methods = ['GET'])
+def check_room():
+    room = request.args.get('room', type=str)
+    password = request.args.get('password', type=str)
+    if room in ROOMS:
+        if ROOMS[room]['Password'] == password:
+            playerHash = hashlib.sha256(str(time.time).encode()).hexdigest() + hashlib.sha256(str(random.randint(0,10000000)/1000000000).encode()).hexdigest()
+            playerHash = hashlib.sha256(playerHash.encode()).hexdigest()
+            ROOMS[room]['Players'].append(playerHash)
+            t = threading.Thread(target=RoomCheck, args=(room, playerHash))
+            t.start()
+            return Response("Entered room,{}".format(playerHash), status=200)
+        else:
+            return Response("Password incorrect", status=200)
+    else:
+        playerHash = hashlib.sha256(str(time.time).encode()).hexdigest() + hashlib.sha256(str(random.randint(0,10000000)/1000000000).encode()).hexdigest()
+        playerHash = hashlib.sha256(playerHash.encode()).hexdigest()
+        ROOMS[room] = {
+            'Password': password,
+            'Players': [playerHash]
+        }
+        t = threading.Thread(target=RoomCheck, args=(room, playerHash))
+        t.start()
+        return Response("Room created,{}".format(playerHash), status=200)
+
+@app.route('/getRooms', methods = ['GET'])
+def get_rooms():
+    return Response(json.dumps(list(ROOMS.keys())), status=200, mimetype='application/json')
+
+@app.route('/getPlayers', methods = ['GET'])
+def get_players():
+    room = request.args.get('room', type=str)
+    print(room in ROOMS)
+    if room in ROOMS:
+        players = {key:PLAYERS[key] for key in ROOMS[room]['Players']}
+        return Response(json.dumps(players), status=200, mimetype='application/json')
+    else:
+        return Response(None, status=404, mimetype='application/json')
+
+@app.route('/', methods = ['GET'])
 def index():
     return render_template("index.html")
 
-# Send player data
-@app.route('/getPlayer', methods = ['GET'])
-def get_player():
-    try:
-        playerid = request.args.get('playerid', type=str)
-        return Response(json.dumps(PLAYERS[playerid]), status=200, mimetype='application/json')
-    except Exception as e:
-        print(e)
-        return Response(None, status=404)
+@sio.on('join_room')
+def join_room(sid, room):
+    sio.enter_room(sid=sid, room=room)
+    # sio.emit("joined", {'data':'Room joined'}, room=room)
 
-# Send the entire player list to the webserver
-@app.route('/getMap', methods = ['GET'])
-def get_map():
-    try:
-        return Response(json.dumps(PLAYERS), status=200, mimetype='application/json')
-    except Exception as e:
-        print(e)
-        return Response(None, status=404)
+@sio.on('leave_room')
+def leave_room(sid, room):
+    sio.leave_room(sid=sid, room=room)
 
-# Main function
 if __name__ == '__main__':
-    # Get Host and Port either from user input or file if exists
-    if os.path.exists("serverInfo.txt"):
-        print("serverInfo.txt found. Loading saved IP Address and Port...")
-        with open("serverInfo.txt") as fil:
-            HOST, PORT = fil.read().split(",")[:2]
-        PORT = int(PORT)
-        print("Host and port loaded...\n{}:{}".format(HOST,PORT))
-    else:
-        try:
-            HOST = HOST = input("Enter your IP Address (Default 0.0.0.0): ")
-            if HOST == "":
-                HOST = '0.0.0.0'
-        except:
-            HOST = '0.0.0.0'
-        try:
-            PORT = int(input("Enter your desired port (Default 50001): "))
-            if PORT == "":
-                PORT = 50001
-        except:
-            PORT = 50001
-        try:
-            PASSWORD = bytes(input("Enter a password (Default none): ").encode())
-        except Exception as e:
-            print(e)
-            PASSWORD = b''
-        decision = input("Save {}:{} for later use? ".format(HOST,PORT))
-        if decision.lower() in ['y', 'yes', 'yeah', 'ye', 'oui']:
-            with open("serverInfo.txt", 'w') as fil:
-                fil.write("{},{},{}".format(HOST,PORT,PASSWORD))
-            print("Server info saved for later reuse...\nStarting server now...")
-
-    print("")
-
-    # Start server thread
-    SERVER = threading.Thread(target=listenForConnections)
+    SERVER = threading.Thread(target=SocketServer)
     SERVER.start()
 
     # Disable logging
