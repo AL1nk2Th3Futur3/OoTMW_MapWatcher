@@ -130,7 +130,8 @@ body{
 .items-icons {
   display: grid;
   /* grid-template-columns: 50px 50px 50px 50px 50px 50px; */
-  grid-template-columns: auto auto auto auto auto auto;
+  /* grid-template-columns: auto auto auto auto auto auto; */
+  grid-template-columns: 32px 32px 32px 32px 32px 32px ;
   /* grid-template-rows: auto; */
   /* justify-content: center; */
   align-items: center;
@@ -149,7 +150,7 @@ body{
 
 .upgrade-icons{
   display: grid;
-  grid-template-columns: auto auto;
+  grid-template-columns: 32px 32px;
   grid-column-start: 1;
   grid-column-end: 3;
   grid-row-start: 1;

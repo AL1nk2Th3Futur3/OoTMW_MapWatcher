@@ -27,9 +27,9 @@ def Client(conn, addr):
         while True:
             try:
                 data = conn.recv(1024)
-                print(data)
+                # print(data)
             except socket.timeout:
-                print('Timed out')
+                # print('Timed out')
                 conn.close()
                 break
             if not data: break
@@ -153,14 +153,26 @@ def Client(conn, addr):
                     room=PLAYERS[playerHash]['Room']
                 )
 
-        sio.emit('remPlayer', PLAYERS[playerHash], room=PLAYERS[playerHash]['Room'])
-        print(ROOMS, PLAYERS)
-        ROOMS[PLAYERS[playerHash]['Room']]['Players'].remove(playerHash)
-        if len(ROOMS[PLAYERS[playerHash]['Room']]['Players']) == 0:
-            del ROOMS[PLAYERS[playerHash]['Room']]
-        del PLAYERS[playerHash]
-        print(ROOMS, PLAYERS)
-        print("Closed")
+        try:
+            sio.emit('remPlayer', PLAYERS[playerHash], room=PLAYERS[playerHash]['Room'])
+        except Exception as e:
+            print(e)
+        # print(ROOMS, PLAYERS)
+        try:
+            ROOMS[PLAYERS[playerHash]['Room']]['Players'].remove(playerHash)
+        except Exception as e:
+            print(e)
+        try:
+            if len(ROOMS[PLAYERS[playerHash]['Room']]['Players']) == 0:
+                del ROOMS[PLAYERS[playerHash]['Room']]
+        except Exception as e:
+            print(e)
+        try:
+            del PLAYERS[playerHash]
+        except Exception as e:
+            print(e)
+        # print(ROOMS, PLAYERS)
+        # print("Closed")
 
 
 def SocketServer():
@@ -171,7 +183,7 @@ def SocketServer():
             conn, addr = sock.accept()
             t = threading.Thread(target=Client, args=(conn, addr))
             t.start()
-            print(threading.active_count())
+            # print(threading.active_count())
 
 def RoomCheck(room, playerHash):
     time.sleep(1)
@@ -208,12 +220,12 @@ def check_room():
 
 @app.route('/getRooms', methods = ['GET'])
 def get_rooms():
-    return Response(json.dumps(list(ROOMS.keys())), status=200, mimetype='application/json')
+    return Response(json.dumps(sorted(list(ROOMS.keys()))), status=200, mimetype='application/json')
 
 @app.route('/getPlayers', methods = ['GET'])
 def get_players():
     room = request.args.get('room', type=str)
-    print(room in ROOMS)
+    # print(room in ROOMS)
     if room in ROOMS:
         players = {key:PLAYERS[key] for key in ROOMS[room]['Players']}
         return Response(json.dumps(players), status=200, mimetype='application/json')
@@ -243,4 +255,4 @@ if __name__ == '__main__':
     log.disabled = True
 
     # Run Flask
-    app.run(threaded=True, host='0.0.0.0', port=8000)
+    app.run(threaded=True, host='0.0.0.0', port=80)

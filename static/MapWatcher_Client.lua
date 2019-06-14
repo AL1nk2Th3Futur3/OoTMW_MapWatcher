@@ -1,7 +1,7 @@
 local socket = require('socket')
 local http = require('socket.http')
 
-local HOST, PORT, FPORT = '127.0.0.1', 50001, 8000
+local HOST, PORT, FPORT = '178.128.234.40', 50001, 80
 
 local client, err
 local mainform, usernameTxt, passwordTxt, roomTxt, colourTxt, connect, disconnect
@@ -61,12 +61,16 @@ function Connect (args)
     -- print("Connected to server")
     username = forms.gettext(usernameTxt)
     username = username:gsub(",", "")
+    username = username:gsub(" ", "_")
     colour = forms.gettext(colourTxt)
     colour = colour:gsub(",", "")
+    colour = colour:gsub(" ", "_")
     room = forms.gettext(roomTxt)
     room = room:gsub(",", "")
+    room = room:gsub(" ", "_")
     password = forms.gettext(passwordTxt)
     password = password:gsub(",", "")
+    password = password:gsub(" ", "_")
     data = http.request('http://' .. HOST .. ":" .. FPORT .. "/checkRoom?room=" .. room .. "&password=" .. password)
     data = splitstr(data, ',')
     local tmpItems = items[0]
